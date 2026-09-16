@@ -2,9 +2,14 @@ from django.views import View
 from django.http import JsonResponse
 from .models import Habits, HabitSchedule, Completion
 from django.contrib.auth.models import User
+from json import loads
+from .forms import  *
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 
 # 1. GET /users - получить список пользователей
+@method_decorator(csrf_exempt, 'dispatch')
 class UserListView(View):
     def get(self, request):
         users = User.objects.all()
@@ -16,6 +21,20 @@ class UserListView(View):
                 'email': user.email,
             })
         return JsonResponse({'data': user_list})
+    
+    def post(self, request):
+        raw_json = request.body
+        new_data = loads(raw_json)
+
+        form = UserForm(new_data)
+        if form.is_valid():
+            user = form.save()
+            return self.get(request)
+        else:
+            return JsonResponse(
+                {'status': 'error', 'code': 400},
+                status=400
+            )
 
 
 # 2. GET /users/<id> - получить конкретного пользователя
@@ -30,6 +49,7 @@ class UserDetailView(View):
 
 
 # 3. GET /users/<id>/habits - получить привычки пользователя
+@method_decorator(csrf_exempt, 'dispatch')
 class UserHabitsView(View):
     def get(self, request, user_id):
         habits = Habits.objects.filter(user_id=user_id)
@@ -41,6 +61,20 @@ class UserHabitsView(View):
                 'target_per_day': habit.target_per_day,
             })
         return JsonResponse({'data': habit_list})
+
+    def post(self, request,user_id):
+        raw_json = request.body
+        new_data = loads(raw_json)
+
+        form = HabitsForm(new_data)
+        if form.is_valid():
+            form.save()
+            return self.get(request, user_id)
+        else:
+            return JsonResponse(
+                {'status': 'error', 'code': 400},
+                status=400
+            )
 
 
 # 4. GET /habits/<id> - получить конкретную привычку 
@@ -56,6 +90,7 @@ class HabitDetailView(View):
 
 
 # 5. GET /habits/<id>/schedule - получить расписание привычки
+@method_decorator(csrf_exempt, 'dispatch')
 class HabitScheduleView(View):
     def get(self, request, habit_id):
         schedules = HabitSchedule.objects.filter(habit_id=habit_id)
@@ -66,9 +101,24 @@ class HabitScheduleView(View):
                 'repeat_time': schedule.repeat_time,
             })
         return JsonResponse({'data': schedule_list})
+    def post(self, request, habit_id):
+        raw_json = request.body
+        new_data = loads(raw_json)
+        new_data['habit'] = habit_id
+    
+        form = HabitScheduleForm(new_data)
+        if form.is_valid():
+            form.save()
+            return self.get(request, habit_id)
+        else:
+            return JsonResponse(
+                {'status': 'error', 'code': 400},
+                status=400
+            )
 
 
 # 6. GET /habits/<id>/completions - получить историю выполнений
+@method_decorator(csrf_exempt, 'dispatch')
 class HabitCompletionsView(View):
     def get(self, request, habit_id):
         completions = Completion.objects.filter(habit_id=habit_id)
@@ -79,6 +129,20 @@ class HabitCompletionsView(View):
                 'completed_at': completion.completed_at,
             })
         return JsonResponse({'data': completion_list})
+    def post(self, request, habit_id):
+            raw_json = request.body
+            new_data = loads(raw_json)
+            new_data['habit'] = habit_id
+    
+            form = CompletionForm(new_data)
+            if form.is_valid():
+                form.save()
+                return self.get(request, habit_id)
+            else:
+                return JsonResponse(
+                    {'status': 'error', 'code': 400},
+                    status=400
+                ) 
 
 
 # 7. GET /habits/<id>/stats - получить статистику привычки
@@ -101,3 +165,18 @@ class UserStatsView(View):
             'total_habits': total_habits,
             'total_completions': total_completions,
         })
+
+
+    # def post(self, request):
+    #         raw_json = request.body
+    #         new_data = loads(raw_json)
+    
+    #         form = UserForm(new_data)
+    #         if form.is_valid():
+    #             user = form.save()
+    #             return self.get(request)
+    #         else:
+    #             return JsonResponse(
+    #                 {'status': 'error', 'code': 400},
+    #                 status=400
+    #             )
