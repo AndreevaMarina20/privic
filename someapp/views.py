@@ -6,6 +6,8 @@ from json import loads
 from .forms import  *
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from  django.shortcuts import get_object_or_404
+from django.forms.models import model_to_dict
 
 
 # 1. GET /users - получить список пользователей
@@ -32,7 +34,7 @@ class UserListView(View):
             return self.get(request)
         else:
             return JsonResponse(
-                {'status': 'error', 'code': 400},
+                {'status': 'error', 'errors': form.errors},
                 status=400
             )
 
@@ -72,12 +74,13 @@ class UserHabitsView(View):
             return self.get(request, user_id)
         else:
             return JsonResponse(
-                {'status': 'error', 'code': 400},
+                {'status': 'error', 'errors': form.errors},
                 status=400
             )
 
 
 # 4. GET /habits/<id> - получить конкретную привычку 
+@method_decorator(csrf_exempt, 'dispatch')
 class HabitDetailView(View):
     def get(self, request, habit_id):
         habit = Habits.objects.get(id=habit_id)
@@ -87,6 +90,18 @@ class HabitDetailView(View):
             'target_per_day': habit.target_per_day,
             'user_id': habit.user.id,
         })
+    def put(self,request, habit_id):
+        habit = get_object_or_404(Habits, id=habit_id)
+        new_data = loads(request.body)
+        form = HabitsForm(new_data, instance=habit)
+        if form.is_valid():
+            form.save()
+            return self.get(request, habit_id)
+        else:
+            return JsonResponse(
+                {'status': 'error', 'errors': form.errors},
+                status = 400
+            )
 
 
 # 5. GET /habits/<id>/schedule - получить расписание привычки
@@ -112,9 +127,21 @@ class HabitScheduleView(View):
             return self.get(request, habit_id)
         else:
             return JsonResponse(
-                {'status': 'error', 'code': 400},
+                {'status': 'error', 'errors': form.errors},
                 status=400
             )
+    def put(self,request, habit_id):
+            habit = get_object_or_404(HabitSchedule, id=habit_id)
+            new_data = loads(request.body)
+            form = HabitScheduleForm(new_data, instance=habit)
+            if form.is_valid():
+                form.save()
+                return self.get(request, habit_id)
+            else:
+                return JsonResponse(
+                    {'status': 'error', 'errors': form.errors},
+                    status = 400
+                )
 
 
 # 6. GET /habits/<id>/completions - получить историю выполнений
@@ -140,9 +167,21 @@ class HabitCompletionsView(View):
                 return self.get(request, habit_id)
             else:
                 return JsonResponse(
-                    {'status': 'error', 'code': 400},
+                    {'status': 'error', 'errors': form.errors},
                     status=400
                 ) 
+    def put(self,request, habit_id):
+                habit = get_object_or_404(Completion, id=habit_id)
+                new_data = loads(request.body)
+                form = CompletionForm(new_data, instance=habit)
+                if form.is_valid():
+                    form.save()
+                    return self.get(request, habit_id)
+                else:
+                    return JsonResponse(
+                        {'status': 'error', 'errors': form.errors},
+                        status = 400
+                    )
 
 
 # 7. GET /habits/<id>/stats - получить статистику привычки

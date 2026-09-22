@@ -4,9 +4,6 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 
 
-# class HabitsForm(ModelForm):
-#     model = Habits
-#     fields = ['user_id', 'name', 'target_per_day']
 class UserForm(UserCreationForm):
     class Meta:
         model = User
