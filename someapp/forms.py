@@ -14,6 +14,11 @@ class HabitsForm(ModelForm):
         model = Habits
         fields = ['user', 'name', 'target_per_day']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['user'].required = False
+        self.fields['target_per_day'].required = False
+
 class HabitScheduleForm(ModelForm):
     class Meta:
         model = HabitSchedule
